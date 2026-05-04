@@ -23,7 +23,7 @@ import ReportDetailModal from "@/components/ReportDetailModal";
 export default function Home() {
   const { reports } = useReports();
   const [feedOpen, setFeedOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [detailModalReport, setDetailModalReport] = useState<Report | null>(null);
 
   // Filters
@@ -67,29 +67,34 @@ export default function Home() {
     })[0];
   }, [filteredReports, reports]);
 
-  const activeReport = selectedReport ?? autoSelectedReport;
+  const activeReport = useMemo(() => {
+    if (selectedReportId) {
+      const selected = reports.find((report) => report.id === selectedReportId);
+      if (selected) return selected;
+    }
+
+    return autoSelectedReport;
+  }, [autoSelectedReport, reports, selectedReportId]);
 
   useEffect(() => {
-    // Ensure we never show an empty/placeholder left panel when reports exist.
-    // If selection is missing or filtered out, fall back to auto-selected.
     if (!autoSelectedReport) return;
 
-    if (!selectedReport) {
-      setSelectedReport(autoSelectedReport);
+    if (!selectedReportId) {
+      setSelectedReportId(autoSelectedReport.id);
       return;
     }
 
-    const stillExists = reports.some((r) => r.id === selectedReport.id);
+    const stillExists = reports.some((r) => r.id === selectedReportId);
     if (!stillExists) {
-      setSelectedReport(autoSelectedReport);
+      setSelectedReportId(autoSelectedReport.id);
       return;
     }
 
     if (filteredReports.length > 0) {
-      const stillVisible = filteredReports.some((r) => r.id === selectedReport.id);
-      if (!stillVisible) setSelectedReport(autoSelectedReport);
+      const stillVisible = filteredReports.some((r) => r.id === selectedReportId);
+      if (!stillVisible) setSelectedReportId(autoSelectedReport.id);
     }
-  }, [autoSelectedReport, filteredReports, reports, selectedReport]);
+  }, [autoSelectedReport, filteredReports, reports, selectedReportId]);
 
   return (
     <div className="flex-1 flex flex-col md:flex-row overflow-hidden h-[calc(100dvh-3.5rem)] sm:h-[calc(100dvh-4rem)]">
@@ -175,7 +180,7 @@ export default function Home() {
           {/* Map Area */}
           <div className="flex-[0.55] min-h-[500px] relative z-0">
             <Map
-              onSelectReport={setSelectedReport}
+              onSelectReport={(report) => setSelectedReportId(report.id)}
               filteredReports={filteredReports}
               selectedReportId={activeReport?.id}
             />

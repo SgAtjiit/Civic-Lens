@@ -88,6 +88,13 @@ export default function IssueDiscussionPanel({
     return list.filter(Boolean);
   }, [selectedReport.image]);
 
+  const totalCommentCount = useMemo(() => {
+    const countReplies = (items: typeof comments): number =>
+      items.reduce((total, item) => total + 1 + countReplies(item.replies || []), 0);
+
+    return countReplies(comments);
+  }, [comments]);
+
   const sortedComments = [...comments].sort((a, b) => {
     if (sortBy === "latest") return b.timestamp - a.timestamp;
     if (sortBy === "top") return b.upvotes - a.upvotes;
@@ -251,15 +258,16 @@ export default function IssueDiscussionPanel({
           className={`flex items-center gap-1.5 transition ${
             isReportSupported(selectedReport.id) ? "text-blue-700" : "text-gray-600 hover:text-blue-600"
           }`}
+          type="button"
         >
           <ThumbsUp className="w-4 h-4" />
           <span className="font-semibold">
-            {selectedReport.upvotes || 0} Support
+            {selectedReport.upvotes || 0} {isReportSupported(selectedReport.id) ? "Supported" : "Support"}
           </span>
         </button>
         <div className="flex items-center gap-1.5 text-gray-600">
           <MessageCircle className="w-4 h-4" />
-          <span className="font-semibold">{comments.length} Comments</span>
+          <span className="font-semibold">{totalCommentCount} Comments</span>
         </div>
       </div>
 
@@ -322,6 +330,7 @@ export default function IssueDiscussionPanel({
                         ? "text-blue-700"
                         : "text-gray-500 hover:text-blue-600"
                     }`}
+                    type="button"
                   >
                     <ThumbsUp className="w-3 h-3" />
                     <span>{comment.upvotes}</span>
@@ -383,6 +392,7 @@ export default function IssueDiscussionPanel({
                                 ? "text-blue-700"
                                 : "text-gray-500 hover:text-blue-600"
                             }`}
+                            type="button"
                           >
                             <ThumbsUp className="w-3 h-3" />
                             <span>{reply.upvotes}</span>
@@ -410,7 +420,7 @@ export default function IssueDiscussionPanel({
             type="text"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            onKeyPress={(e) => {
+            onKeyDown={(e) => {
               if (e.key === "Enter") handleAddComment();
             }}
             placeholder="Share your thoughts..."
@@ -419,6 +429,7 @@ export default function IssueDiscussionPanel({
           <button
             onClick={handleAddComment}
             className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+            type="button"
           >
             Post
           </button>

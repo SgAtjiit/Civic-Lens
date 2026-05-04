@@ -322,25 +322,26 @@ export function ReportProvider({ children }: { children: React.ReactNode }) {
   const isReportSupported = (reportId: string) => supportedReports.has(reportId);
 
   const toggleReportSupport = (reportId: string) => {
-    setSupportedReports((prev) => {
-      const next = new Set(prev);
-      const willSupport = !next.has(reportId);
-      if (willSupport) next.add(reportId);
-      else next.delete(reportId);
+    const willSupport = !supportedReports.has(reportId);
+    const nextSupportedReports = new Set(supportedReports);
 
-      persistSupportedReports(next);
+    if (willSupport) nextSupportedReports.add(reportId);
+    else nextSupportedReports.delete(reportId);
 
-      setReports((reportsPrev) => {
-        const updated = reportsPrev.map((r) =>
-          r.id === reportId
-            ? { ...r, upvotes: Math.max(0, (r.upvotes || 0) + (willSupport ? 1 : -1)) }
-            : r
-        );
-        persistReports(updated);
-        return updated;
-      });
+    setSupportedReports(nextSupportedReports);
+    persistSupportedReports(nextSupportedReports);
 
-      return next;
+    setReports((reportsPrev) => {
+      const updated = reportsPrev.map((report) =>
+        report.id === reportId
+          ? {
+              ...report,
+              upvotes: Math.max(0, (report.upvotes || 0) + (willSupport ? 1 : -1)),
+            }
+          : report
+      );
+      persistReports(updated);
+      return updated;
     });
   };
 
@@ -348,42 +349,40 @@ export function ReportProvider({ children }: { children: React.ReactNode }) {
   const isCommentUpvoted = (reportId: string, commentId: string) => supportedComments.has(commentKey(reportId, commentId));
 
   const toggleCommentUpvote = (reportId: string, commentId: string) => {
-    setSupportedComments((prev) => {
-      const next = new Set(prev);
-      const key = commentKey(reportId, commentId);
-      const willUpvote = !next.has(key);
-      if (willUpvote) next.add(key);
-      else next.delete(key);
+    const key = commentKey(reportId, commentId);
+    const willUpvote = !supportedComments.has(key);
+    const nextSupportedComments = new Set(supportedComments);
 
-      persistSupportedComments(next);
+    if (willUpvote) nextSupportedComments.add(key);
+    else nextSupportedComments.delete(key);
 
-      setReports((reportsPrev) => {
-        const updateTree = (nodes: Comment[]): Comment[] =>
-          nodes.map((node) => {
-            if (node.id === commentId) {
-              return {
-                ...node,
-                upvotes: Math.max(0, node.upvotes + (willUpvote ? 1 : -1)),
-              };
-            }
-            if (node.replies && node.replies.length > 0) {
-              return { ...node, replies: updateTree(node.replies) };
-            }
-            return node;
-          });
+    setSupportedComments(nextSupportedComments);
+    persistSupportedComments(nextSupportedComments);
 
-        const updated = reportsPrev.map((report) => {
-          if (report.id !== reportId) return report;
-          return {
-            ...report,
-            comments: updateTree(report.comments || []),
-          };
+    setReports((reportsPrev) => {
+      const updateTree = (nodes: Comment[]): Comment[] =>
+        nodes.map((node) => {
+          if (node.id === commentId) {
+            return {
+              ...node,
+              upvotes: Math.max(0, node.upvotes + (willUpvote ? 1 : -1)),
+            };
+          }
+          if (node.replies && node.replies.length > 0) {
+            return { ...node, replies: updateTree(node.replies) };
+          }
+          return node;
         });
-        persistReports(updated);
-        return updated;
-      });
 
-      return next;
+      const updated = reportsPrev.map((report) => {
+        if (report.id !== reportId) return report;
+        return {
+          ...report,
+          comments: updateTree(report.comments || []),
+        };
+      });
+      persistReports(updated);
+      return updated;
     });
   };
 
